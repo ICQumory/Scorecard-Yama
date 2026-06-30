@@ -671,6 +671,21 @@
     transition: all 0.15s;
   }
   .btn-detail:hover { border-color: var(--red); color: var(--red); }
+  .btn-pdf-row {
+    background: none;
+    border: 1px solid #E0E0E0;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: 4px;
+  }
+  .btn-pdf-row:hover { border-color: var(--red); color: var(--red); background: rgba(200,16,46,0.05); }
+  .btn-pdf-row:disabled { opacity: 0.5; cursor: wait; }
   .btn-delete {
     background: none;
     border: 1px solid #E0E0E0;
@@ -1293,9 +1308,9 @@ let lastSavedEvaluation = null; // guarda dados da última avaliação para PDF
 // ─────────────────────────────────────────────
 function init() {
   // Credenciais fixas — configuradas pelo administrador
-  SUPABASE_URL = 'https://wzdrblfisidubcaqiyvc.supabase.co';
-  SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6ZHJibGZpc2lkdWJjYXFpeXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4Njc3NDAsImV4cCI6MjA5NzQ0Mzc0MH0.7FIlYZvG1Sek-srnbW89vBverY98rR5nNz2sSbv7-ew';
-  ADMIN_PASS   = 'cah251120';
+  SUPABASE_URL = 'https://kwvfypsakqkzxlggrcrp.supabase.co';
+  SUPABASE_KEY = 'sb_publishable_-l_QkhDsbZq46kcQ4Qic7Q_2YzDudlF';
+  ADMIN_PASS   = 'Cah251120@';
 
   renderCriteriaTable('quantBody', QUANT_CRITERIA, 'q');
   renderCriteriaTable('qualBody',  QUAL_CRITERIA,  'ql');
@@ -1646,6 +1661,7 @@ function renderTable(data) {
         <td class="td-date">${date}</td>
         <td style="white-space:nowrap">
           <button class="btn-detail" onclick="openDetail(${i})">Ver</button>
+          <button class="btn-pdf-row" onclick="downloadEvalPDF(${i}, event)" title="Baixar comprovante em PDF">PDF</button>
           <button class="btn-delete" onclick="confirmDelete(${i}, event)">✕</button>
         </td>
       </tr>
@@ -1848,7 +1864,26 @@ function closePdfModal() {
 
 function generatePDF() {
   if (!lastSavedEvaluation) return;
-  const r = lastSavedEvaluation;
+  printEvaluationPDF(lastSavedEvaluation);
+  closePdfModal();
+}
+
+function downloadEvalPDF(idx, event) {
+  if (event) event.stopPropagation();
+  const r = allEvaluations[idx];
+  if (!r) return;
+
+  const btn = event ? event.currentTarget : null;
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
+  printEvaluationPDF(r);
+
+  if (btn) {
+    setTimeout(() => { btn.disabled = false; btn.textContent = 'PDF'; }, 600);
+  }
+}
+
+function printEvaluationPDF(r) {
   const html = buildEvalHTML(r);
   const repName = r.representative_name.replace(/[^a-zA-Z0-9]/g, '_');
   const fileName = `Scorecard_${repName}_${r.period}_${r.year}.pdf`;
@@ -1876,7 +1911,6 @@ function generatePDF() {
     printWin.close();
   }, 400);
 
-  closePdfModal();
   showToast('success', '↓', `PDF gerado: ${fileName}`);
 }
 
