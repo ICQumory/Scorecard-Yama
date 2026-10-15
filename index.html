@@ -1767,12 +1767,16 @@ function renderRegionalCards(data) {
     }
     const media = (scores.reduce((s, v) => s + parseFloat(v), 0) / scores.length).toFixed(1);
     const count = scores.length;
+    // Pega período/ano do filtro ativo para contextualizar o PDF
+    const periodoAtivo = document.getElementById('filterPeriod') ? document.getElementById('filterPeriod').value || '' : '';
+    const anoAtivo = document.getElementById('filterYear') ? document.getElementById('filterYear').value || '' : '';
     return `
       <div class="regional-card">
         <div class="regional-card-name">${reg}</div>
         <div class="regional-card-score">${media}</div>
         <div class="regional-card-count">${count} RCA${count !== 1 ? 's' : ''} avaliado${count !== 1 ? 's' : ''}</div>
         <span class="badge-parcial">Parcial</span>
+        <button onclick="printRegionalPDF(${JSON.stringify(reg)}, ${JSON.stringify(periodoAtivo)}, ${JSON.stringify(anoAtivo)})" style="margin-top:10px;width:100%;padding:6px 0;background:#C8102E;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">↓ PDF</button>
       </div>`;
   }).join('');
 }
