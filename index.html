@@ -1777,7 +1777,7 @@ function renderRegionalCards(data) {
         <div class="regional-card-count">${count} RCA${count !== 1 ? 's' : ''} avaliado${count !== 1 ? 's' : ''}</div>
         ${periodoAtivo ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${periodoAtivo}${anoAtivo ? ' · ' + anoAtivo : ''}</div>` : ''}
         <span class="badge-parcial">Parcial</span>
-        <button onclick="printRegionalPDF(${JSON.stringify(reg)}, ${JSON.stringify(periodoAtivo)}, ${JSON.stringify(anoAtivo)})" style="margin-top:10px;width:100%;padding:6px 0;background:#C8102E;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">↓ PDF</button>
+        <button onclick="printRegionalPDF(this)" data-reg="${reg}" data-period="${periodoAtivo}" data-year="${anoAtivo}" style="margin-top:10px;width:100%;padding:6px 0;background:#C8102E;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">↓ PDF</button>
       </div>`;
   }).join('');
 }
@@ -2048,7 +2048,10 @@ function buildRegionalHTML(reg, period, year) {
   `;
 }
 
-function printRegionalPDF(reg, period, year) {
+function printRegionalPDF(btn) {
+  const reg    = btn.dataset.reg;
+  const period = btn.dataset.period;
+  const year   = btn.dataset.year;
   const html = buildRegionalHTML(reg, period, year);
   const printWin = window.open('', '_blank', 'width=800,height=900');
   if (!printWin) { showToast('error', '!', 'Pop-up bloqueado. Permita pop-ups e tente novamente.'); return; }
