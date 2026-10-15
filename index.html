@@ -507,6 +507,81 @@
     margin-top: 4px;
   }
 
+  /* ── REGIONAL CARDS ── */
+  .regional-section {
+    margin-bottom: 20px;
+    display: none;
+  }
+  .regional-section.visible { display: block; }
+  .regional-section-header {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding-left: 2px;
+  }
+  .regional-cards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 900px) { .regional-cards { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) { .regional-cards { grid-template-columns: repeat(2, 1fr); } }
+  .regional-card {
+    background: var(--surface);
+    border: 1px solid #E8E8E8;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 18px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .regional-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--red);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .regional-card.no-data::before { background: #E0E0E0; }
+  .regional-card-name {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .regional-card-score {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--red);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .regional-card.no-data .regional-card-score { color: var(--text-dim); font-size: 18px; }
+  .regional-card-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 5px;
+  }
+  .badge-parcial {
+    display: inline-block;
+    background: #FFF3CD;
+    color: #856404;
+    border: 1px solid #FFE082;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 2px;
+    margin-top: 6px;
+  }
+
   /* ── FILTERS ── */
   .filters-bar {
     background: var(--surface);
@@ -1029,7 +1104,18 @@
           <input type="text" id="repName" placeholder="Nome completo">
         </div>
       </div>
-      <div class="field-row">
+      <div class="field-row three">
+        <div class="field">
+          <label>Regional</label>
+          <select id="regional">
+            <option value="">Selecione</option>
+            <option value="São Paulo">São Paulo</option>
+            <option value="Sul">Sul</option>
+            <option value="Sudeste">Sudeste</option>
+            <option value="Nordeste">Nordeste</option>
+            <option value="Norte / CO">Norte / CO</option>
+          </select>
+        </div>
         <div class="field">
           <label>Período</label>
           <select id="period">
@@ -1040,7 +1126,6 @@
             <option value="Q4">Q4 · Out–Dez</option>
           </select>
         </div>
-
         <div class="field">
           <label>Ano</label>
           <input type="number" id="year" value="2026" min="2024" max="2030">
@@ -1179,6 +1264,12 @@
         <div class="metric-card-value" id="metBot" style="font-size:14px;line-height:1.3;color:#C0392B">—</div>
         <div class="metric-card-sub" id="metBotScore"></div>
       </div>
+    </div>
+
+    <!-- REGIONAL SCORES -->
+    <div class="regional-section" id="regionalSection">
+      <div class="regional-section-header">Nota por Regional · Trimestre</div>
+      <div class="regional-cards" id="regionalCards"></div>
     </div>
 
     <!-- FILTERS -->
@@ -1437,14 +1528,15 @@ function recalcScores() {
 // SUBMIT
 // ─────────────────────────────────────────────
 async function submitEvaluation() {
-  const manager  = document.getElementById('managerName').value.trim();
-  const rep      = document.getElementById('repName').value.trim();
-  const period   = document.getElementById('period').value;
-  const year     = parseInt(document.getElementById('year').value);
-  const obs      = document.getElementById('observations').value.trim();
+  const manager   = document.getElementById('managerName').value.trim();
+  const rep       = document.getElementById('repName').value.trim();
+  const period    = document.getElementById('period').value;
+  const year      = parseInt(document.getElementById('year').value);
+  const obs       = document.getElementById('observations').value.trim();
+  const regional  = document.getElementById('regional').value;
 
-  if (!manager || !rep || !period) {
-    showToast('error', '✕', 'Preencha todos os campos obrigatórios.');
+  if (!manager || !rep || !period || !regional) {
+    showToast('error', '✕', 'Preencha todos os campos obrigatórios, incluindo a Regional.');
     return;
   }
 
@@ -1485,6 +1577,7 @@ async function submitEvaluation() {
       representative_name: rep,
       period,
       year,
+      regional,
       quant_crescimento:   qScores.crescimento,
       quant_faturamento:   qScores.faturamento,
       quant_positivacao:   qScores.positivacao,
@@ -1526,6 +1619,7 @@ function resetForm() {
   ['managerName','repName','observations'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('period').value = '';
   document.getElementById('year').value = '2026';
+  document.getElementById('regional').value = '';
   QUANT_CRITERIA.forEach(c => {
     document.getElementById(`q_${c.id}`).value = '';
     document.getElementById(`q_calc_${c.id}`).textContent = '—';
@@ -1610,11 +1704,13 @@ async function loadAdminData() {
     allEvaluations = data || [];
     renderTable(allEvaluations);
     renderMetrics(allEvaluations);
+    renderRegionalCards(allEvaluations);
   } catch(e) {
     console.error('Erro ao carregar:', e);
     let msg = e.message || 'Erro desconhecido';
     document.getElementById('tableBody').innerHTML = `<div class="table-empty">Erro ao carregar dados.<br><small style="color:var(--text-dim);font-family:monospace">${msg}</small><br><br>Verifique se a tabela <strong>scorecard_evaluations</strong> existe e se as policies RLS estão ativas.</div>`;
     renderMetrics([]);
+    renderRegionalCards([]);
   }
 }
 
@@ -1635,6 +1731,50 @@ function renderMetrics(data) {
     ['metTop','metBot'].forEach(id => document.getElementById(id).textContent = '—');
     ['metTopScore','metBotScore'].forEach(id => document.getElementById(id).textContent = '');
   }
+}
+
+function renderRegionalCards(data) {
+  const REGIONAIS = ['Sul', 'Sudeste', 'São Paulo', 'Nordeste', 'CO-NO'];
+  const section = document.getElementById('regionalSection');
+  const container = document.getElementById('regionalCards');
+
+  // Só exibe se ao menos um registro tiver campo regional preenchido
+  const hasRegional = data.some(r => r.regional && r.regional.trim() !== '');
+  if (!hasRegional) {
+    section.classList.remove('visible');
+    return;
+  }
+  section.classList.add('visible');
+
+  // Agrupa por regional
+  const grupos = {};
+  REGIONAIS.forEach(reg => { grupos[reg] = []; });
+  data.forEach(r => {
+    const reg = (r.regional || '').trim();
+    if (grupos[reg] !== undefined) grupos[reg].push(r.final_score);
+    // regionais fora da lista esperada são ignoradas
+  });
+
+  container.innerHTML = REGIONAIS.map(reg => {
+    const scores = grupos[reg];
+    if (scores.length === 0) {
+      return `
+        <div class="regional-card no-data">
+          <div class="regional-card-name">${reg}</div>
+          <div class="regional-card-score">—</div>
+          <div class="regional-card-count">Sem avaliações</div>
+        </div>`;
+    }
+    const media = (scores.reduce((s, v) => s + parseFloat(v), 0) / scores.length).toFixed(1);
+    const count = scores.length;
+    return `
+      <div class="regional-card">
+        <div class="regional-card-name">${reg}</div>
+        <div class="regional-card-score">${media}</div>
+        <div class="regional-card-count">${count} RCA${count !== 1 ? 's' : ''} avaliado${count !== 1 ? 's' : ''}</div>
+        <span class="badge-parcial">Parcial</span>
+      </div>`;
+  }).join('');
 }
 
 function renderTable(data) {
@@ -1695,7 +1835,7 @@ function openDetail(idx) {
   currentDetail = r;
 
   document.getElementById('modalTitle').textContent = r.representative_name;
-  document.getElementById('modalSub').textContent = `${r.period} ${r.year} · Avaliado por ${r.manager_name}`;
+  document.getElementById('modalSub').textContent = `${r.period} ${r.year} · ${r.regional ? r.regional + ' · ' : ''}Avaliado por ${r.manager_name}`;
 
   const scoreClass = r.final_score >= 8 ? '#1A8A4A' : r.final_score >= 6 ? '#C07800' : '#C8102E';
 
@@ -1772,7 +1912,7 @@ function buildEvalHTML(r) {
           <div style="border-left:1px solid #E0E0E0;padding-left:16px;">
             <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#C8102E;font-weight:700;margin-bottom:4px;">Scorecard · RCA</div>
             <div style="font-size:18px;font-weight:800;color:#1A1A1A;">${esc(r.representative_name)}</div>
-            <div style="font-size:12px;color:#6B6B6B;margin-top:2px;">Avaliado por ${esc(r.manager_name)} · ${r.period} ${r.year}</div>
+            <div style="font-size:12px;color:#6B6B6B;margin-top:2px;">Avaliado por ${esc(r.manager_name)}${r.regional ? ' · Regional ' + esc(r.regional) : ''} · ${r.period} ${r.year}</div>
           </div>
         </div>
         <div style="text-align:right;">
@@ -2027,6 +2167,7 @@ CREATE TABLE scorecard_evaluations (
   representative_name  VARCHAR(255) NOT NULL,
   period               VARCHAR(2)   NOT NULL CHECK (period IN ('Q1','Q2','Q3','Q4')),
   year                 INT          NOT NULL DEFAULT 2026,
+  regional             VARCHAR(50),
   -- Quantitativo (70%)
   quant_crescimento    DECIMAL(4,1) NOT NULL CHECK (quant_crescimento  BETWEEN 0 AND 10),
   quant_faturamento    DECIMAL(4,1) NOT NULL CHECK (quant_faturamento  BETWEEN 0 AND 10),
@@ -2048,10 +2189,10 @@ CREATE TABLE scorecard_evaluations (
 );
 
 -- ─────────────────────────────────────────────────────────────
--- MIGRAÇÃO (se a tabela já existia com os campos antigos):
+-- MIGRAÇÃO (se a tabela já existe):
 -- ─────────────────────────────────────────────────────────────
--- DROP TABLE scorecard_evaluations; -- apaga tudo e recria
--- Ou altere coluna a coluna com ALTER TABLE ... ADD COLUMN / DROP COLUMN
+ALTER TABLE scorecard_evaluations ADD COLUMN IF NOT EXISTS regional VARCHAR(50);
+-- DROP TABLE scorecard_evaluations; -- apaga tudo e recria do zero
 
 -- ─────────────────────────────────────────────────────────────
 -- Habilitar RLS e criar policies:
